@@ -1,0 +1,17 @@
+C:\Users\Mitch\source\repos\HelloNeuralNet\obj\Debug\net6.0\HelloNeuralNet.csproj.AssemblyReference.cache
+C:\Users\Mitch\source\repos\HelloNeuralNet\obj\Debug\net6.0\HelloNeuralNet.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Mitch\source\repos\HelloNeuralNet\obj\Debug\net6.0\HelloNeuralNet.AssemblyInfoInputs.cache
+C:\Users\Mitch\source\repos\HelloNeuralNet\obj\Debug\net6.0\HelloNeuralNet.AssemblyInfo.cs
+C:\Users\Mitch\source\repos\HelloNeuralNet\obj\Debug\net6.0\HelloNeuralNet.csproj.CoreCompileInputs.cache
+C:\Users\Mitch\source\repos\HelloNeuralNet\bin\Debug\net6.0\HelloNeuralNet.exe
+C:\Users\Mitch\source\repos\HelloNeuralNet\bin\Debug\net6.0\HelloNeuralNet.deps.json
+C:\Users\Mitch\source\repos\HelloNeuralNet\bin\Debug\net6.0\HelloNeuralNet.runtimeconfig.json
+C:\Users\Mitch\source\repos\HelloNeuralNet\bin\Debug\net6.0\HelloNeuralNet.dll
+C:\Users\Mitch\source\repos\HelloNeuralNet\bin\Debug\net6.0\ref\HelloNeuralNet.dll
+C:\Users\Mitch\source\repos\HelloNeuralNet\bin\Debug\net6.0\HelloNeuralNet.pdb
+C:\Users\Mitch\source\repos\HelloNeuralNet\bin\Debug\net6.0\Newtonsoft.Json.dll
+C:\Users\Mitch\source\repos\HelloNeuralNet\obj\Debug\net6.0\HelloNeuralNet.csproj.CopyComplete
+C:\Users\Mitch\source\repos\HelloNeuralNet\obj\Debug\net6.0\HelloNeuralNet.dll
+C:\Users\Mitch\source\repos\HelloNeuralNet\obj\Debug\net6.0\ref\HelloNeuralNet.dll
+C:\Users\Mitch\source\repos\HelloNeuralNet\obj\Debug\net6.0\HelloNeuralNet.pdb
+C:\Users\Mitch\source\repos\HelloNeuralNet\obj\Debug\net6.0\HelloNeuralNet.genruntimeconfig.cache
