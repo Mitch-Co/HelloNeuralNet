@@ -7,11 +7,17 @@ namespace HelloNeuralNet
 {
     class Program
     {
+        const int image_size = 28;
+
         const string train_data_CSV = "C:\\Users\\Mitch\\source\\repos\\HelloNeuralNet\\mnist\\CSV\\train";
         const string test_data_CSV = "C:\\Users\\Mitch\\source\\repos\\HelloNeuralNet\\mnist\\CSV\\test";
-        const string train_data_JSON = "C:\\Users\\Mitch\\source\\repos\\HelloNeuralNet\\mnist\\CSV\\train";
-        const string test_data_JSON = "C:\\Users\\Mitch\\source\\repos\\HelloNeuralNet\\mnist\\CSV\\test";
+        const string train_data_JSON = "C:\\Users\\Mitch\\source\\repos\\HelloNeuralNet\\mnist\\JSON\\train.json";
+        const string test_data_JSON = "C:\\Users\\Mitch\\source\\repos\\HelloNeuralNet\\mnist\\JSON\\test.json";
         const string save_data = "C:\\Users\\Mitch\\source\\repos\\HelloNeuralNet\\mnist\\JSON";
+
+        static List<MNIST_Element> train_set = new List<MNIST_Element>();
+        static List<MNIST_Element> test_set = new List<MNIST_Element>();
+        static NeuralNet helloNet = null;
 
         public static void saveToFile<T>(T to_save, string file_name)
         {
@@ -26,10 +32,9 @@ namespace HelloNeuralNet
         }
 
         // Transforms the MNIST dataset from the extracted CSV dataset (see mnistCSV.py)
-        // Scans all files in the input folders, converts them to 
+        // Scans all files in the input folder, converts the CSV file into MNIST_Elements and saves the element array to a JSON file
         public static void mnist_transform(string csv_folderpath, string save_filepath)
         {
-            const int image_size = 28;
             List<MNIST_Element> elements = new List<MNIST_Element>();
 
 
@@ -52,12 +57,12 @@ namespace HelloNeuralNet
                         {
                             string line = reader.ReadLine();
                             string[] values = line.Split(',');
-                            if(values.Length != image_size)
+                            if (values.Length != image_size)
                             {
                                 throw new DivideByZeroException();
                             }
 
-                            for(int x = 0; x < image_size; x++)
+                            for (int x = 0; x < image_size; x++)
                             {
                                 image[x, count] = int.Parse(values[x]);
                             }
@@ -72,7 +77,7 @@ namespace HelloNeuralNet
                         MNIST_Element toAdd = new MNIST_Element(number_int, image);
 
                         elements.Add(toAdd);
-                        
+
                     }
                     catch (Exception e)
                     {
@@ -82,55 +87,211 @@ namespace HelloNeuralNet
             }
             saveToFile(elements, save_filepath);
         }
+        static void generate_JSON_MNIST()
+        {
+            mnist_transform(test_data_CSV, test_data_JSON);
+            mnist_transform(train_data_CSV, train_data_JSON);
+        }
 
+        static void load_mnist()
+        {
+            Console.WriteLine("Loading MNIST dataset...");
+            train_set = loadFromFile<List<MNIST_Element>>(train_data_JSON);
+            test_set = loadFromFile<List<MNIST_Element>>(test_data_JSON);
+            Console.WriteLine("MNIST dataset loaded\n");
+
+        }
+        static void print_mnist(MNIST_Element toPrint)
+        {
+            Console.WriteLine("\nNumber: " + toPrint.value.ToString());
+            Console.WriteLine("--------------------------------------");
+            for (int y = 0; y < image_size; y++)
+            {
+                for (int x = 0; x < image_size; x++)
+                {
+                    Console.Write((toPrint.image[x, y] > 40) ? "." : "X");
+                }
+                Console.WriteLine("");
+            }
+        }
+        static int force_int_input()
+        {
+            string input;
+            int int_input = 0;
+            while(true)
+            {
+                try
+                {
+                    input = Console.ReadLine();
+                    if (input == "quit" || input == "exit")
+                    {
+                        System.Environment.Exit(0);
+                    }
+                    int_input = int.Parse(input);
+                    return int_input;
+
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Please enter a valid integer");
+                }
+
+            }
+
+        }
+
+        public static void randomize_network(NeuralNet toRandomize, int lower_bound, int upper_bound)
+        {
+            Random rnd = new Random();
+            rnd.Next(0, 100);
+            Layer prev_layer = null;
+            foreach(Layer l in toRandomize.layers)
+            {
+                if(prev_layer != null)
+                {
+                    foreach (Neuron n in l.neurons)
+                    {
+                        int num_weights = prev_layer.neurons.Count;
+                        n.weights = new float[num_weights];
+                        for (int i = 0; i < num_weights; i++)
+                        {
+                            n.weights[i] = rnd.Next(lower_bound, upper_bound);
+                            if((int) n.weights[i] < upper_bound && (int) n.weights[i] > lower_bound )
+                            {
+                                n.weights[i] += (float)(0.001 * (rnd.Next(0, 999))); 
+                            }
+                        }
+                    }
+                }
+                prev_layer = l;
+            }
+        }
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            //load_mnist();
+            while (true)
+            {
+                Console.WriteLine("\nChoose an Option:");
+                Console.WriteLine("1. New Neural Network");
+                Console.WriteLine("2. Train Neural Network");
+                Console.WriteLine("3. Test Neural Network");
+                Console.WriteLine("4. Exit");
+                string input = Console.ReadLine();
+                switch (input)
+                {
+                    case "1":
+                        Console.WriteLine("How many hidden layers?");
+                        int num_layers = force_int_input();
+                        if(num_layers <= 0)
+                        {
+                            break;
+                        }
+                        helloNet = new NeuralNet(2 + num_layers);
 
-            mnist_transform(test_data, save_data + "\\test.json");
+                        int[] num_neurons = new int[2 + num_layers];
+                        num_neurons[0] = image_size * image_size;
+                        num_neurons[1 + num_layers] = 10;
+                        for (int i = 0; i < num_layers; i++)
+                        {
+                            Console.WriteLine("Neurons in hidden layer " + (i + 1).ToString() +"?");
+                            num_neurons[i + 1] = force_int_input();
+                            
+                        }
+
+                        helloNet.create_all_neurons(num_neurons);
+
+                        // Weight Randomization
+                        Console.WriteLine("Lower bound of weight randomization?");
+                        int rand_lower = force_int_input();
+                        Console.WriteLine("Upper bound of weight randomization?");
+                        int rand_upper = force_int_input();
+                        if(rand_lower > rand_upper)
+                        {
+                            break;
+                        }
+                        randomize_network(helloNet, rand_lower, rand_upper);
+
+                        saveToFile(helloNet, "C:\\Users\\Mitch\\Desktop\\helloNet.json");
+                        
+                        break;
+                    case "2":
+                        break;
+                    case "3":
+                        break;
+                    case "4" or "exit" or "quit":
+                        System.Environment.Exit(0);
+                        break;
+
+                }
+            }
         }
-    }
 
-    public class MNIST_Element {
-
-        public int value;
-        public int[,] image;
-        public MNIST_Element(int value, int[,] image)
+        public class MNIST_Element
         {
-            this.value = value;
-            this.image = image;
+
+            public int value;
+            public int[,] image;
+            public MNIST_Element(int value, int[,] image)
+            {
+                this.value = value;
+                this.image = image;
+            }
+
         }
 
-    }
-
-    public class NeuralNet
-    {
-        private List<Layer> layers = new List<Layer>();
-        public NeuralNet()
+        public class NeuralNet
         {
+            public List<Layer> layers = new List<Layer>();
+            public NeuralNet(int num_layers)
+            {
+                for (int i = 0; i < num_layers; i++)
+                {
+                    this.layers.Add(new Layer());
+                }
+            }
 
+            public void create_all_neurons(int[] values)
+            {
+                if(values.Length == layers.Count)
+                {
+                    for(int i = 0; i < values.Length; i++)
+                    {
+                        this.layers[i].define_layer_neurons(values[i]);
+                    }
+                }
+            }
         }
-    }
 
-    public class Layer
-    {
-        public List<Neuron> neurons = new List<Neuron>();
-        public Layer()
+        public class Layer
         {
+            public List<Neuron> neurons = new List<Neuron>();
+            public Layer()
+            {
 
+            }
+            public void define_layer_neurons(int num_neurons)
+            {
+                for(int i = 0; i < num_neurons; i++)
+                {
+                    this.neurons.Add(new Neuron());
+                }
+            }
         }
-    }
 
-    public class Neuron
-    {
-        public string value { get; set; }
-        public Neuron(string yeet)
+        public class Neuron
         {
-            this.value = yeet;
-        }
-        public Neuron()
-        {
+            public float value;
+            public float[] weights = null;
+            public float bias;
+            public float backprop;
+            public Neuron(int value)
+            {
+                this.value = value;
+            }
+            public Neuron()
+            {
 
+            }
         }
     }
 }
