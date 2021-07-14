@@ -135,8 +135,8 @@ namespace HelloNeuralNet
                 {
                     Console.WriteLine("Please enter a valid integer");
                 }
-
             }
+
 
         }
 
@@ -152,23 +152,109 @@ namespace HelloNeuralNet
                     foreach (Neuron n in l.neurons)
                     {
                         int num_weights = prev_layer.neurons.Count;
-                        n.weights = new float[num_weights];
+                        n.weights = new double[num_weights];
+
                         for (int i = 0; i < num_weights; i++)
                         {
-                            n.weights[i] = rnd.Next(lower_bound, upper_bound);
-                            if((int) n.weights[i] < upper_bound && (int) n.weights[i] > lower_bound )
-                            {
-                                n.weights[i] += (float)(0.001 * (rnd.Next(0, 999))); 
-                            }
+                            n.weights[i] = rnd.Next(lower_bound * 100 , upper_bound * 100) / 100.00;
                         }
                     }
                 }
                 prev_layer = l;
             }
         }
+        public static double ReLU(double input)
+        {
+            if(input < 0)
+            {
+                return 0;
+            }
+            else
+            {
+                return input;
+            }
+        }
+        public static void forward_prop(NeuralNet toTrain, MNIST_Element element)
+        {
+            
+
+            Layer prev_layer = null;
+            foreach (Layer l in toTrain.layers)
+            {
+                // Continue propagation
+                if (prev_layer != null)
+                {
+                    foreach (Neuron n in l.neurons)
+                    {
+                        double sum = 0;
+                        int num_weights = n.weights.Length;
+                        for (int i = 0; i < num_weights; i++)
+                        {
+                            sum += n.weights[i] * prev_layer.neurons[i].value;
+                        }
+                        n.value = ReLU(sum + n.bias);
+                    }
+                }
+                // Initialize layer 0
+                else
+                {
+                    int xsize = element.image.GetLength(0);
+                    int ysize = element.image.GetLength(1);
+
+                    for (int y = 0; y < ysize; y++)
+                    {
+                        for (int x = 0; x < xsize; x++)
+                        {
+                            l.neurons[(xsize * y) + x].value = element.image[x, y];
+                        }
+                    }
+                }
+                prev_layer = l;
+            }
+        }
+        public static void batch_train(NeuralNet toTrain, int steps)
+        {
+            int num_tests = train_set.Count;
+            if (num_tests <= 0)
+            {
+                return;
+            }
+
+            Random rnd = new Random();
+
+            double succ_rate = 0.0;
+            for(int j = 0; j < steps; j++)
+            {
+                MNIST_Element test_num = train_set[rnd.Next(0, num_tests)];
+                forward_prop(toTrain, test_num);
+
+                saveToFile(toTrain, "C:\\Users\\Mitch\\Desktop\\1_iter.json");
+
+                int max_index = 0;
+                for (int i = 0; i < toTrain.layers[toTrain.layers.Count - 1].neurons.Count; i++)
+                {
+                    //Console.WriteLine(i.ToString() + ": " + toTrain.layers[toTrain.layers.Count - 1].neurons[i].value);
+                    if (toTrain.layers[toTrain.layers.Count - 1].neurons[i].value > toTrain.layers[toTrain.layers.Count - 1].neurons[max_index].value)
+                    {
+                        max_index = i;
+                    }
+                }
+
+                //Console.WriteLine("NN RESULT: " + max_index.ToString());
+                //Console.WriteLine("ACTUAL NUMBER: " + test_num.value.ToString());
+                if(max_index == test_num.value)
+                {
+                    succ_rate += 1.0;
+                }
+            }
+            succ_rate = succ_rate / steps;
+
+            Console.WriteLine("Success rate over " + steps.ToString() + " steps = "+ succ_rate.ToString());
+
+        }
         static void Main(string[] args)
         {
-            //load_mnist();
+            load_mnist();
             while (true)
             {
                 Console.WriteLine("\nChoose an Option:");
@@ -215,6 +301,7 @@ namespace HelloNeuralNet
                         
                         break;
                     case "2":
+                        batch_train(helloNet, 10000);
                         break;
                     case "3":
                         break;
@@ -280,10 +367,10 @@ namespace HelloNeuralNet
 
         public class Neuron
         {
-            public float value;
-            public float[] weights = null;
-            public float bias;
-            public float backprop;
+            public double value;
+            public double[] weights = null;
+            public double bias;
+            public double backprop;
             public Neuron(int value)
             {
                 this.value = value;
