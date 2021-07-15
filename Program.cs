@@ -8,6 +8,7 @@ namespace HelloNeuralNet
     class Program
     {
         const int image_size = 28;
+        const double max_neuron_val = 1000.0;
 
         const string train_data_CSV = "C:\\Users\\Mitch\\source\\repos\\HelloNeuralNet\\mnist\\CSV\\train";
         const string test_data_CSV = "C:\\Users\\Mitch\\source\\repos\\HelloNeuralNet\\mnist\\CSV\\test";
@@ -18,6 +19,8 @@ namespace HelloNeuralNet
         static List<MNIST_Element> train_set = new List<MNIST_Element>();
         static List<MNIST_Element> test_set = new List<MNIST_Element>();
         static NeuralNet helloNet = null;
+
+        static double succrate = 0.0;
 
         public static void saveToFile<T>(T to_save, string file_name)
         {
@@ -136,8 +139,6 @@ namespace HelloNeuralNet
                     Console.WriteLine("Please enter a valid integer");
                 }
             }
-
-
         }
 
         public static void randomize_network(NeuralNet toRandomize, int lower_bound, int upper_bound)
@@ -153,6 +154,7 @@ namespace HelloNeuralNet
                     {
                         int num_weights = prev_layer.neurons.Count;
                         n.weights = new double[num_weights];
+                        n.nudge = 0;
 
                         for (int i = 0; i < num_weights; i++)
                         {
@@ -169,14 +171,82 @@ namespace HelloNeuralNet
             {
                 return 0;
             }
-            else
+            else if(input < max_neuron_val)
             {
                 return input;
+            }
+            else
+            {
+                return max_neuron_val;
+            }
+        }
+
+        public static int get_network_output(NeuralNet finished)
+        {
+            int end_index = finished.layers.Count - 1;
+            int num_end_neurons = finished.layers[end_index].neurons.Count;
+            int max_index = 0;
+            for (int i = 0; i < num_end_neurons; i++)
+            {
+                if (finished.layers[end_index].neurons[i].value > finished.layers[end_index].neurons[max_index].value)
+                {
+                    max_index = i;
+                }
+            }
+            return max_index;
+        }
+        public static void reset_backwards_prop(NeuralNet toTrain)
+        {
+            foreach (Layer l in toTrain.layers)
+            {
+                foreach (Neuron n in l.neurons)
+                {
+                    n.nudge = 0.0;
+                }
+            }
+        }
+        public static void backwards_prop_add(NeuralNet toTrain, MNIST_Element element)
+        {
+            int end_index = toTrain.layers.Count - 1;
+            int num_end_neurons = toTrain.layers[end_index].neurons.Count;
+            int what_we_want = element.value;
+            int network_output = get_network_output(toTrain);
+            for (int i = 0; i < num_end_neurons; i++)
+            {
+                // IMPORTANT
+                if(i == what_we_want)
+                {
+                    toTrain.layers[end_index].neurons[i].nudge = (max_neuron_val) - toTrain.layers[end_index].neurons[i].value;
+                }
+                else
+                {
+                    toTrain.layers[end_index].neurons[i].nudge = 0 - toTrain.layers[end_index].neurons[i].value;
+                }
+            }
+        }
+
+        public static void backwards_prop(NeuralNet toTrain)
+        {
+            int end_layer = toTrain.layers.Count - 1;
+            for (int i = end_layer - 1; i > 0; i--)
+            {
+                foreach(Neuron n in toTrain.layers[i + 1].neurons)
+                {
+                    int numweights = n.weights.Length;
+                    double avg_bump = n.nudge / max_neuron_val;
+                    double thousandth = (1.00 / 1000.00) * max_neuron_val;
+                    for (int j = 0; j < numweights; j++)
+                    {
+                        
+                        n.weights[j] += (toTrain.layers[i].neurons[j].value / max_neuron_val) * avg_bump;
+                        toTrain.layers[i].neurons[j].nudge += avg_bump;
+                        n.bias += 1 / 1000 * avg_bump;
+                    }
+                }
             }
         }
         public static void forward_prop(NeuralNet toTrain, MNIST_Element element)
         {
-            
 
             Layer prev_layer = null;
             foreach (Layer l in toTrain.layers)
@@ -227,29 +297,32 @@ namespace HelloNeuralNet
             {
                 MNIST_Element test_num = train_set[rnd.Next(0, num_tests)];
                 forward_prop(toTrain, test_num);
+                backwards_prop_add(toTrain, test_num);
+                backwards_prop(toTrain);
+                reset_backwards_prop(toTrain);
+            }
 
-                saveToFile(toTrain, "C:\\Users\\Mitch\\Desktop\\1_iter.json");
-
-                int max_index = 0;
-                for (int i = 0; i < toTrain.layers[toTrain.layers.Count - 1].neurons.Count; i++)
-                {
-                    //Console.WriteLine(i.ToString() + ": " + toTrain.layers[toTrain.layers.Count - 1].neurons[i].value);
-                    if (toTrain.layers[toTrain.layers.Count - 1].neurons[i].value > toTrain.layers[toTrain.layers.Count - 1].neurons[max_index].value)
-                    {
-                        max_index = i;
-                    }
-                }
-
+            for (int j = 0; j < steps; j++)
+            {
+                MNIST_Element test_num = train_set[rnd.Next(0, num_tests)];
+                forward_prop(toTrain, test_num);
                 //Console.WriteLine("NN RESULT: " + max_index.ToString());
                 //Console.WriteLine("ACTUAL NUMBER: " + test_num.value.ToString());
-                if(max_index == test_num.value)
+                if(j == steps - 1)
+                {
+                    //Console.WriteLine(get_network_output(toTrain).ToString());
+                }
+                
+                if (get_network_output(toTrain) == test_num.value)
                 {
                     succ_rate += 1.0;
                 }
             }
             succ_rate = succ_rate / steps;
+            succrate += succ_rate;
 
-            Console.WriteLine("Success rate over " + steps.ToString() + " steps = "+ succ_rate.ToString());
+
+            //Console.WriteLine("Success rate over " + steps.ToString() + " steps = "+ succ_rate.ToString());
 
         }
         static void Main(string[] args)
@@ -301,7 +374,18 @@ namespace HelloNeuralNet
                         
                         break;
                     case "2":
-                        batch_train(helloNet, 10000);
+                        for (int y = 0; y < 20; y++)
+                        {
+                            succrate = 0;
+                            int z = 0;
+                            for (z = 0; z < 100; z++)
+                            {
+                                batch_train(helloNet, 2000);
+
+                            }
+                            Console.WriteLine("Success Rate of last " + (z).ToString() + "Trials: " + (succrate / (double)(z)).ToString());
+                            saveToFile(helloNet, "C:\\Users\\Mitch\\Desktop\\trained_owo.json");
+                        }
                         break;
                     case "3":
                         break;
@@ -370,7 +454,7 @@ namespace HelloNeuralNet
             public double value;
             public double[] weights = null;
             public double bias;
-            public double backprop;
+            public double nudge;
             public Neuron(int value)
             {
                 this.value = value;
